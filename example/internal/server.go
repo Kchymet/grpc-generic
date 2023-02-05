@@ -9,6 +9,7 @@ import (
 var _ api.HelloWorldServiceServer = (*Server)(nil)
 
 type Server struct {
+	api.UnimplementedHelloWorldServiceServer
 }
 
 func (s Server) SayHello(ctx context.Context, request *api.HelloWorldRequest) (*api.HelloWorldResponse, error) {
