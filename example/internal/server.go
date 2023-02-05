@@ -17,5 +17,3 @@ func (s Server) SayHello(ctx context.Context, request *api.HelloWorldRequest) (*
 	response := &api.HelloWorldResponse{Message: message}
 	return response, nil
 }
-
-
