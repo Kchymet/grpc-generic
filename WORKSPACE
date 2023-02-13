@@ -115,8 +115,8 @@ go_repository(
     name = "org_golang_google_grpc",
     build_file_proto_mode = "disable",
     importpath = "google.golang.org/grpc",
-    sum = "h1:pf7sOysg4LdgBqduXveGKrcEwbStiK2rtfghdzlUYDQ=",
-    version = "v1.52.3",
+    sum = "h1:LAv2ds7cmFV/XTS3XG1NneeENYrXGmorPxsBbptIjNc=",
+    version = "v1.53.0",
 )
 
 go_repository(
