@@ -1,7 +1,7 @@
 load("@bazel_gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 
-# gazelle:go_proto_compilers @io_bazel_rules_go//proto:go_proto
-# gazelle:go_grpc_compilers //:gen-go-grpc
+# TODO use go_proto_compilers for the second item here.
+# gazelle:go_grpc_compilers //:gen-go-grpc, @io_bazel_rules_go//proto:go_proto
 # gazelle:prefix github.com/kchymet/generic-grpc
 gazelle(
     name = "gazelle",
