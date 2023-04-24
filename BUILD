@@ -1,7 +1,6 @@
 load("@bazel_gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 
-# TODO use go_proto_compilers for the second item here.
-# gazelle:go_grpc_compilers //:gen-go-grpc, @io_bazel_rules_go//proto:go_proto
+# gazelle:go_grpc_compilers //:gen-go-grpc, @io_bazel_rules_go//proto:go_proto, //:protoc-gen-go-generic
 # gazelle:prefix github.com/kchymet/generic-grpc
 gazelle(
     name = "gazelle",
@@ -17,6 +16,19 @@ go_proto_compiler(
     name = "gen-go-grpc",
     plugin = "@org_golang_google_grpc_cmd_protoc_gen_go_grpc//:protoc-gen-go-grpc",
     suffix = "_grpc.pb.go",
+    valid_archive = False,
+    visibility = ["//visibility:public"],
+    deps = WELL_KNOWN_TYPES_APIV2 + [
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//status:go_default_library",
+    ],
+)
+
+go_proto_compiler(
+    name = "protoc-gen-go-generic",
+    plugin = "//cmd/protoc-gen-go-generic-grpc",
+    suffix = "_generic_grpc.pb.go",
     valid_archive = False,
     visibility = ["//visibility:public"],
     deps = WELL_KNOWN_TYPES_APIV2 + [

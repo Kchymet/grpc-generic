@@ -13,6 +13,7 @@ go_proto_library(
     compilers = [
         "//:gen-go-grpc",
         "@io_bazel_rules_go//proto:go_proto",
+        "//:protoc-gen-go-generic",
     ],
     importpath = "github.com/kchymet/generic-grpc/example/api",
     proto = ":api_proto",
