@@ -108,6 +108,7 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	g.P()
 	for _, service := range file.Services {
 		genService(gen, file, g, service)
+		genServiceBuilder(gen, file, g, service)
 	}
 }
 
@@ -121,15 +122,33 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	}
 }
 
-func genServiceMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
-	interfaceName := fmt.Sprintf("%s_%s_%s", service.GoName, method.GoName, "Action")
+func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	if len(service.Methods) == 0 {
+		return
+	}
+
+	interfaceName := fmt.Sprintf("%sBuilder", service.GoName)
 	g.P("type ", interfaceName, " interface {")
-	signature := genServerSignature(g, method)
+	for _, method := range service.Methods {
+		genServiceBindingMethod(gen, file, g, service, method)
+	}
+	g.P("}")
+}
+
+func genServiceMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+	interfaceName := getActionInterfaceName(service, method)
+	g.P("type ", interfaceName, " interface {")
+	signature := getServerSignature(g, method)
 	g.P(signature)
 	g.P("}")
 }
 
-func genServerSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
+func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+	actionInterfaceName := getActionInterfaceName(service, method)
+	g.P("Bind", method.GoName, "(",actionInterfaceName,")")
+}
+
+func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
 	ret := "error"
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
@@ -143,4 +162,11 @@ func genServerSignature(g *protogen.GeneratedFile, method *protogen.Method) stri
 		reqArgs = append(reqArgs, method.Parent.GoName+"_"+method.GoName+"Server")
 	}
 	return method.GoName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
+}
+
+
+
+func getActionInterfaceName(service *protogen.Service, method *protogen.Method) string {
+	interfaceName := fmt.Sprintf("%s%s%s", service.GoName, method.GoName, "Action")
+	return interfaceName
 }
