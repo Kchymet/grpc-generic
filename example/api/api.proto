@@ -10,6 +10,15 @@ message HelloWorldResponse {
   string message = 1;
 }
 
+message ManyHelloRequest {
+  int32 count = 1;
+}
+
+message ManyHelloResponse {
+  string message = 1;
+}
+
 service HelloWorldService {
   rpc SayHello(HelloWorldRequest) returns (HelloWorldResponse);
+  rpc SayManyHello(ManyHelloRequest) returns (stream ManyHelloResponse);
 }

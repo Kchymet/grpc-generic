@@ -134,7 +134,7 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	for _, method := range service.Methods {
 		genServiceBindingMethodSignature(gen, file, g, service, method)
 	}
-	//genBuildSignature(gen, file, g, service, method)
+	genBuildMethodSignature(gen, file, g, service)
 	g.P("}")
 
 	// Generate a builder implementation
@@ -145,9 +145,9 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	for _, method := range service.Methods {
 		genServiceBindingMethod(gen, file, g, service, method, builderName)
 	}
+	genBuildMethod(gen, file, g, service, builderName)
 
 
-	// Generate static builder implementation
 	constructorName := fmt.Sprintf("New%sBuilder", service.GoName)
 	g.P("func ", constructorName, "() ", interfaceName, " {")
 	g.P("return &", builderName, "{}")
@@ -179,6 +179,25 @@ func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	g.P("}")
 }
 
+func genBuildMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
+	serverName := getServerInterfaceName(service)
+	g.P("Build() ", serverName)
+}
+
+func genBuildMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
+	serverName := getServerInterfaceName(service)
+	//actionInterfaceName := getActionInterfaceName(service, method)
+	//methodName := getBindMethodName(method)
+	g.P("func (b *", builderName, ") Build() ", serverName, " {")
+
+	// TODO implementation
+	unimplementedServerName := getUnimplementedServerInterfaceName(service)
+	g.P("return ", unimplementedServerName, "{}")
+
+
+	g.P("}")
+}
+
 func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
 	ret := "error"
@@ -203,5 +222,17 @@ func getActionInterfaceName(service *protogen.Service, method *protogen.Method) 
 	interfaceName := fmt.Sprintf("%s%s%s", service.GoName, method.GoName, "Action")
 	return interfaceName
 }
+
+func getServerInterfaceName(service *protogen.Service) string {
+	interfaceName := fmt.Sprintf("%sServer", service.GoName)
+	return interfaceName
+}
+
+func getUnimplementedServerInterfaceName(service *protogen.Service) string {
+	interfaceName := fmt.Sprintf("Unimplemented%sServer", service.GoName)
+	return interfaceName
+}
+
+
 
 func unexport(s string) string { return strings.ToLower(s[:1]) + s[1:] }
