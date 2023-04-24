@@ -118,7 +118,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 	}
 
 	for _, method := range service.Methods {
-		genServiceMethod(gen, file, g, service, method)
+		genServiceMethodAction(gen, file, g, service, method)
 	}
 }
 
@@ -127,15 +127,35 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 		return
 	}
 
-	interfaceName := fmt.Sprintf("%sBuilder", service.GoName)
+	// Generate the builder interface
+	//unexportedName :=
+	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
 	g.P("type ", interfaceName, " interface {")
 	for _, method := range service.Methods {
-		genServiceBindingMethod(gen, file, g, service, method)
+		genServiceBindingMethodSignature(gen, file, g, service, method)
 	}
+	//genBuildSignature(gen, file, g, service, method)
 	g.P("}")
+
+	// Generate a builder implementation
+	builderName := fmt.Sprintf("%sBuilderImpl", unexport(service.GoName))
+	g.P("type ", builderName, " struct {")
+	// TODO builder dependencies / embeddings
+	g.P("}")
+	for _, method := range service.Methods {
+		genServiceBindingMethod(gen, file, g, service, method, builderName)
+	}
+
+
+	// Generate static builder implementation
+	constructorName := fmt.Sprintf("New%sBuilder", service.GoName)
+	g.P("func ", constructorName, "() ", interfaceName, " {")
+	g.P("return &", builderName, "{}")
+	g.P("}")
+
 }
 
-func genServiceMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+func genServiceMethodAction(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
 	interfaceName := getActionInterfaceName(service, method)
 	g.P("type ", interfaceName, " interface {")
 	signature := getServerSignature(g, method)
@@ -143,9 +163,20 @@ func genServiceMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gen
 	g.P("}")
 }
 
-func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+func genServiceBindingMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
 	actionInterfaceName := getActionInterfaceName(service, method)
-	g.P("Bind", method.GoName, "(",actionInterfaceName,")")
+	methodName := getBindMethodName(method)
+	g.P(methodName, "(",actionInterfaceName,")")
+}
+
+func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method, builderName string) {
+	actionInterfaceName := getActionInterfaceName(service, method)
+	methodName := getBindMethodName(method)
+	g.P("func (b *", builderName, ") ", methodName, "(a ", actionInterfaceName, ") {")
+
+	// TODO implementation
+
+	g.P("}")
 }
 
 func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
@@ -164,9 +195,13 @@ func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) stri
 	return method.GoName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
 }
 
-
+func getBindMethodName(method *protogen.Method) string {
+	return fmt.Sprintf("Bind%s", method.GoName)
+}
 
 func getActionInterfaceName(service *protogen.Service, method *protogen.Method) string {
 	interfaceName := fmt.Sprintf("%s%s%s", service.GoName, method.GoName, "Action")
 	return interfaceName
 }
+
+func unexport(s string) string { return strings.ToLower(s[:1]) + s[1:] }
