@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ const (
 	grpcPackage    = protogen.GoImportPath("google.golang.org/grpc")
 	codesPackage   = protogen.GoImportPath("google.golang.org/grpc/codes")
 	statusPackage  = protogen.GoImportPath("google.golang.org/grpc/status")
+	dispatchingServerPackage = protogen.GoImportPath("github.com/kchymet/generic-grpc/pkg")
 )
 
 const version = "0.0.1"
@@ -119,6 +121,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 
 	for _, method := range service.Methods {
 		genServiceMethodAction(gen, file, g, service, method)
+		genServiceMethodRequestDecode(gen, file, g, service, method)
 	}
 }
 
@@ -140,19 +143,42 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	// Generate a builder implementation
 	builderName := fmt.Sprintf("%sBuilderImpl", unexport(service.GoName))
 	g.P("type ", builderName, " struct {")
-	// TODO builder dependencies / embeddings
+	g.P("ServiceName string")
+	g.P("Metadata string")
+	g.P("MethodDispatchInfo map[string]*", g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")))
+	g.P("StreamDescriptions map[string]", g.QualifiedGoIdent(grpcPackage.Ident("StreamHandler")))
 	g.P("}")
 	for _, method := range service.Methods {
 		genServiceBindingMethod(gen, file, g, service, method, builderName)
 	}
+	genWithServiceName(gen, file, g, service, builderName)
 	genBuildMethod(gen, file, g, service, builderName)
 
+	genServiceBuilderConstructor(service, g, interfaceName, builderName, file, service.Methods)
+}
 
+func genServiceBuilderConstructor(service *protogen.Service, g *protogen.GeneratedFile, interfaceName string, builderName string, file *protogen.File, methods []*protogen.Method) {
 	constructorName := fmt.Sprintf("New%sBuilder", service.GoName)
 	g.P("func ", constructorName, "() ", interfaceName, " {")
-	g.P("return &", builderName, "{}")
-	g.P("}")
 
+	g.P("return &", builderName, "{")
+	g.P("ServiceName: \"", service.GoName, "\",")
+	g.P("Metadata: \"", file.Desc.Path(), "\",")
+
+	g.P("MethodDispatchInfo: map[string]*",g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")), "{")
+	for _, method := range methods {
+		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
+			continue
+		}
+		g.P("\"", method.GoName, "\": &", g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")), "{")
+		g.P("DecodeFunc: ", getDecodeMethodName(service, method), ",")
+		g.P("Handler: ", g.QualifiedGoIdent(dispatchingServerPackage.Ident("GetDefaultUnaryUnimplementedHandler")), "(", strconv.Quote(string(method.Desc.Name())) ,"),")
+		g.P("},")
+	}
+	g.P("},") // End of MethodDispatchInfo initialization.
+
+	g.P("}") // End of Builder initialization
+	g.P("}") // End of Constructor method
 }
 
 func genServiceMethodAction(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
@@ -163,40 +189,80 @@ func genServiceMethodAction(gen *protogen.Plugin, file *protogen.File, g *protog
 	g.P("}")
 }
 
+func genServiceMethodRequestDecode(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+	decodeMethodName := getDecodeMethodName(service, method)
+	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+		g.P("func ", decodeMethodName, "(dec func(interface{}) error) (interface{}, error) {")
+		g.P("in := new(", method.Input.GoIdent, ")")
+		g.P("if err := dec(in); err != nil { return nil, err }")
+		g.P("return in, nil")
+		g.P("}")
+		return
+	}
+	if !method.Desc.IsStreamingClient() {
+		g.P("func ", decodeMethodName, "(dec func(interface{}) error, stream grpc.ServerStream) (interface{}, error) {")
+		g.P("m := new(", method.Input.GoIdent, ")")
+		g.P("if err := stream.RecvMsg(m); err != nil { return nil, err }")
+		g.P("return m, nil")
+		g.P("}")
+	}
+}
+
 func genServiceBindingMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
+	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
 	actionInterfaceName := getActionInterfaceName(service, method)
 	methodName := getBindMethodName(method)
-	g.P(methodName, "(",actionInterfaceName,")")
+	g.P(methodName, "(",actionInterfaceName,") ", interfaceName)
 }
 
 func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method, builderName string) {
+	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
 	actionInterfaceName := getActionInterfaceName(service, method)
 	methodName := getBindMethodName(method)
-	g.P("func (b *", builderName, ") ", methodName, "(a ", actionInterfaceName, ") {")
+	g.P("func (b *", builderName, ") ", methodName, "(a ", actionInterfaceName, ") ", interfaceName, " {")
 
-	// TODO implementation
+	// Bind MethodDesc for unary (non-streaming) endpoints.
+	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+		g.P("b.MethodDispatchInfo[", strconv.Quote(string(method.Desc.Name())), "].Handler = func(ctx ", g.QualifiedGoIdent(contextPackage.Ident("Context")), ", req interface{}) (interface{}, error) {")
+		g.P("return a.", method.GoName, "(ctx, req.(*", method.Input.GoIdent, "))")
+		g.P("}")
+	}
+
+	g.P("return b")
 
 	g.P("}")
 }
 
 func genBuildMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service) {
-	serverName := getServerInterfaceName(service)
+	serverName := g.QualifiedGoIdent(dispatchingServerPackage.Ident("DispatchingRpcServer"))
 	g.P("Build() ", serverName)
 }
 
 func genBuildMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
-	serverName := getServerInterfaceName(service)
+	serverName := g.QualifiedGoIdent(dispatchingServerPackage.Ident("DispatchingRpcServer"))
+
 	//actionInterfaceName := getActionInterfaceName(service, method)
 	//methodName := getBindMethodName(method)
 	g.P("func (b *", builderName, ") Build() ", serverName, " {")
 
-	// TODO implementation
-	unimplementedServerName := getUnimplementedServerInterfaceName(service)
-	g.P("return ", unimplementedServerName, "{}")
-
+	g.P("return ", g.QualifiedGoIdent(dispatchingServerPackage.Ident("NewDispatchingRpcServer")), "(b.ServiceName, b.Metadata, b.MethodDispatchInfo, b.StreamDescriptions)")
 
 	g.P("}")
 }
+
+func genWithServiceNameSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
+	g.P("WithServiceName(string) *", builderName)
+}
+
+func genWithServiceName(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
+	g.P("func (b *", builderName, ") WithServiceName(serviceName string) *", builderName, " {")
+
+	g.P("b.ServiceName = serviceName")
+	g.P("return b")
+
+	g.P("}")
+}
+
 
 func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
@@ -214,6 +280,10 @@ func getServerSignature(g *protogen.GeneratedFile, method *protogen.Method) stri
 	return method.GoName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
 }
 
+func getDecodeMethodName(service *protogen.Service, method *protogen.Method) string {
+	return fmt.Sprintf("_%s_%s_Decode", service.GoName, method.GoName)
+}
+
 func getBindMethodName(method *protogen.Method) string {
 	return fmt.Sprintf("Bind%s", method.GoName)
 }
@@ -222,17 +292,5 @@ func getActionInterfaceName(service *protogen.Service, method *protogen.Method) 
 	interfaceName := fmt.Sprintf("%s%s%s", service.GoName, method.GoName, "Action")
 	return interfaceName
 }
-
-func getServerInterfaceName(service *protogen.Service) string {
-	interfaceName := fmt.Sprintf("%sServer", service.GoName)
-	return interfaceName
-}
-
-func getUnimplementedServerInterfaceName(service *protogen.Service) string {
-	interfaceName := fmt.Sprintf("Unimplemented%sServer", service.GoName)
-	return interfaceName
-}
-
-
 
 func unexport(s string) string { return strings.ToLower(s[:1]) + s[1:] }

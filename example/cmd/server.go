@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/kchymet/generic-grpc/example/api"
-	"github.com/kchymet/generic-grpc/example/internal"
+	"github.com/kchymet/generic-grpc/example/internal/action"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -11,12 +11,20 @@ import (
 )
 
 func main(){
+	//internal.Testing() // TODO delete
 	port := 9000
 
 	server := grpc.NewServer()
-	appServer := internal.Server{}
-	api.RegisterHelloWorldServiceServer(server, appServer)
+
 	reflection.Register(server)
+
+	api.NewHelloWorldServiceBuilder().
+		BindSayHello(action.NewSayHelloAction()).
+		BindSayManyHello(action.NewSayManyHello()).
+		BindStreamHello(action.NewStreamHello()).
+		// Don't bind the unimplemented method from the proto.
+		Build().
+		Register(server)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
