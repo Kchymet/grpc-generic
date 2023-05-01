@@ -38,12 +38,12 @@ bazel run //example/cmd
 ```
 
 ```bash
-grpcurl -d '{"name": "Kyle"}' --plaintext localhost:9000 HelloWorldService.SayHello
+grpcurl -d '{"name": "World"}' --plaintext localhost:9000 HelloWorldService.SayHello
 ```
 
 ```
 # should output
 {
- "message": "Hello, Kyle"
+ "message": "Hello, World"
 }
 ```
