@@ -2,7 +2,13 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "protoc-gen-go-generic-grpc_lib",
-    srcs = ["protoc-generic-grpc.go"],
+    srcs = [
+        "common.go",
+        "file.go",
+        "protoc-generic-grpc.go",
+        "service.go",
+        "service_builder.go",
+    ],
     importpath = "github.com/kchymet/generic-grpc/cmd/protoc-gen-go-generic-grpc",
     visibility = ["//visibility:private"],
     deps = [
