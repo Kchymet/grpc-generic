@@ -16,8 +16,9 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
 	g.P("type ", interfaceName, " interface {")
 	for _, method := range service.Methods {
-		genServiceBindingMethodSignature(gen, file, g, service, method)
+		genServiceBindingMethodSignature(gen, file, g, service, method, interfaceName)
 	}
+	genWithServiceNameSignature(gen, file, g, service, interfaceName)
 	genBuildMethodSignature(gen, file, g, service)
 	g.P("}")
 
@@ -30,9 +31,9 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	g.P("StreamDescriptions map[string]", g.QualifiedGoIdent(grpcPackage.Ident("StreamHandler")))
 	g.P("}")
 	for _, method := range service.Methods {
-		genServiceBindingMethod(gen, file, g, service, method, builderName)
+		genServiceBindingMethod(gen, file, g, service, method, builderName, interfaceName)
 	}
-	genWithServiceName(gen, file, g, service, builderName)
+	genWithServiceName(gen, file, g, service, builderName, interfaceName)
 	genBuildMethod(gen, file, g, service, builderName)
 
 	genServiceBuilderConstructor(service, g, interfaceName, builderName, file, service.Methods)
@@ -62,15 +63,13 @@ func genServiceBuilderConstructor(service *protogen.Service, g *protogen.Generat
 	g.P("}") // End of Constructor method
 }
 
-func genServiceBindingMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method) {
-	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
+func genServiceBindingMethodSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method, interfaceName string) {
 	actionInterfaceName := getActionInterfaceName(service, method)
 	methodName := getBindMethodName(method)
 	g.P(methodName, "(", actionInterfaceName, ") ", interfaceName)
 }
 
-func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method, builderName string) {
-	interfaceName := fmt.Sprintf("%sBuilder", unexport(service.GoName))
+func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, method *protogen.Method, builderName, interfaceName string) {
 	actionInterfaceName := getActionInterfaceName(service, method)
 	methodName := getBindMethodName(method)
 	g.P("func (b *", builderName, ") ", methodName, "(a ", actionInterfaceName, ") ", interfaceName, " {")
@@ -95,8 +94,6 @@ func genBuildMethodSignature(gen *protogen.Plugin, file *protogen.File, g *proto
 func genBuildMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
 	serverName := g.QualifiedGoIdent(dispatchingServerPackage.Ident("DispatchingRpcServer"))
 
-	//actionInterfaceName := getActionInterfaceName(service, method)
-	//methodName := getBindMethodName(method)
 	g.P("func (b *", builderName, ") Build() ", serverName, " {")
 
 	g.P("return ", g.QualifiedGoIdent(dispatchingServerPackage.Ident("NewDispatchingRpcServer")), "(b.ServiceName, b.Metadata, b.MethodDispatchInfo, b.StreamDescriptions)")
@@ -104,12 +101,12 @@ func genBuildMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gener
 	g.P("}")
 }
 
-func genWithServiceNameSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
-	g.P("WithServiceName(string) *", builderName)
+func genWithServiceNameSignature(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, interfaceName string) {
+	g.P("WithServiceName(string) ", interfaceName)
 }
 
-func genWithServiceName(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName string) {
-	g.P("func (b *", builderName, ") WithServiceName(serviceName string) *", builderName, " {")
+func genWithServiceName(gen *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFile, service *protogen.Service, builderName, interfaceName string) {
+	g.P("func (b *", builderName, ") WithServiceName(serviceName string) ", interfaceName, " {")
 
 	g.P("b.ServiceName = serviceName")
 	g.P("return b")
