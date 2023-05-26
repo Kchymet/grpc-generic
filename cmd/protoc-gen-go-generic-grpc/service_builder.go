@@ -99,10 +99,20 @@ func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 		g.P("}")
 	}
 
-	// Bind description for server and bidirectional streaming
+	// Bind description for streaming endpoints.
 	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
 		g.P("b.StreamDescriptions[", strconv.Quote(string(method.Desc.Name())), "].Handler = func(srv interface{}, stream ", g.QualifiedGoIdent(grpcPackage.Ident("ServerStream")), ") error {")
-		g.P("return nil")
+		serverStreamName := fmt.Sprintf("%s%sServer", unexport(service.GoName), method.GoName)
+		// For server-only streaming:
+		if !method.Desc.IsStreamingClient() {
+			g.P("m := new(", method.Input.GoIdent, ")")
+			g.P("if err := stream.RecvMsg(m); err != nil {")
+			g.P("return err")
+			g.P("}")
+			g.P("return a.", method.GoName, "(m, &", serverStreamName, "{stream})")
+		} else {
+			g.P("return a.", method.GoName, "(&", serverStreamName, "{stream})")
+		}
 		g.P("}")
 	}
 
