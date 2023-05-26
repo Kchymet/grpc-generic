@@ -28,7 +28,7 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	g.P("ServiceName string")
 	g.P("Metadata string")
 	g.P("MethodDispatchInfo map[string]*", g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")))
-	g.P("StreamDescriptions map[string]", g.QualifiedGoIdent(grpcPackage.Ident("StreamHandler")))
+	g.P("StreamDescriptions map[string]*", g.QualifiedGoIdent(grpcPackage.Ident("StreamDesc")))
 	g.P("}")
 	for _, method := range service.Methods {
 		genServiceBindingMethod(gen, file, g, service, method, builderName, interfaceName)
@@ -52,12 +52,30 @@ func genServiceBuilderConstructor(service *protogen.Service, g *protogen.Generat
 		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
 			continue
 		}
-		g.P("\"", method.GoName, "\": &", g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")), "{")
+		g.P("\"", method.Desc.Name(), "\": &", g.QualifiedGoIdent(dispatchingServerPackage.Ident("UnaryDispatchInfo")), "{")
 		g.P("DecodeFunc: ", getDecodeMethodName(service, method), ",")
 		g.P("Handler: ", g.QualifiedGoIdent(dispatchingServerPackage.Ident("GetDefaultUnaryUnimplementedHandler")), "(", strconv.Quote(string(method.Desc.Name())), "),")
 		g.P("},")
 	}
 	g.P("},") // End of MethodDispatchInfo initialization.
+
+	g.P("StreamDescriptions: map[string]*", g.QualifiedGoIdent(grpcPackage.Ident("StreamDesc")), "{")
+	for _, method := range methods {
+		if !method.Desc.IsStreamingServer() && !method.Desc.IsStreamingClient() {
+			continue
+		}
+		g.P("\"", method.GoName, "\": &", g.QualifiedGoIdent(grpcPackage.Ident("StreamDesc")), "{")
+		g.P("StreamName: \"", method.Desc.Name(), "\",")
+		g.P("Handler: ", g.QualifiedGoIdent(dispatchingServerPackage.Ident("GetDefaultStreamUnimplementedHandler")), "(", strconv.Quote(string(method.Desc.Name())), "),")
+		if method.Desc.IsStreamingServer() {
+			g.P("ServerStreams: true,")
+		}
+		if method.Desc.IsStreamingClient() {
+			g.P("ClientStreams: true,")
+		}
+		g.P("},")
+	}
+	g.P("},") // End of StreamDescriptions initialization.
 
 	g.P("}") // End of Builder initialization
 	g.P("}") // End of Constructor method
@@ -78,6 +96,13 @@ func genServiceBindingMethod(gen *protogen.Plugin, file *protogen.File, g *proto
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		g.P("b.MethodDispatchInfo[", strconv.Quote(string(method.Desc.Name())), "].Handler = func(ctx ", g.QualifiedGoIdent(contextPackage.Ident("Context")), ", req interface{}) (interface{}, error) {")
 		g.P("return a.", method.GoName, "(ctx, req.(*", method.Input.GoIdent, "))")
+		g.P("}")
+	}
+
+	// Bind description for server and bidirectional streaming
+	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+		g.P("b.StreamDescriptions[", strconv.Quote(string(method.Desc.Name())), "].Handler = func(srv interface{}, stream ", g.QualifiedGoIdent(grpcPackage.Ident("ServerStream")), ") error {")
+		g.P("return nil")
 		g.P("}")
 	}
 

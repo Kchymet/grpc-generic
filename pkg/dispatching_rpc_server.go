@@ -34,15 +34,15 @@ type dispatchingRpcServerImpl struct {
 	Metadata string
 
 	MethodDispatchInfo map[string]*UnaryDispatchInfo
-	StreamHandlers     map[string]grpc.StreamHandler
+	StreamDescriptions map[string]*grpc.StreamDesc
 }
 
-func NewDispatchingRpcServer(serviceName, metadata string, methodHandlers map[string]*UnaryDispatchInfo, streamHandlers map[string]grpc.StreamHandler) DispatchingRpcServer {
+func NewDispatchingRpcServer(serviceName, metadata string, methodHandlers map[string]*UnaryDispatchInfo, streamDescriptions map[string]*grpc.StreamDesc) DispatchingRpcServer {
 	return &dispatchingRpcServerImpl{
 		ServiceName:        serviceName,
 		Metadata:           metadata,
 		MethodDispatchInfo: methodHandlers,
-		StreamHandlers:     streamHandlers,
+		StreamDescriptions: streamDescriptions,
 	}
 }
 
@@ -53,12 +53,13 @@ func (s *dispatchingRpcServerImpl) Register(r grpc.ServiceRegistrar) {
 func (s *dispatchingRpcServerImpl) GetServiceDescription() *grpc.ServiceDesc {
 	md := make([]grpc.MethodDesc, 0, len(s.MethodDispatchInfo))
 	for name, info := range s.MethodDispatchInfo {
-		fmt.Printf("binding endpoint for method %s\n", name)
 		md = append(md, s.unaryMethodDescription(name, info))
 	}
 
-	// TODO stream descriptions
-	sd := make([]grpc.StreamDesc, 0)
+	sd := make([]grpc.StreamDesc, 0, len(s.StreamDescriptions))
+	for _, info := range s.StreamDescriptions {
+		sd = append(sd, *info)
+	}
 
 	return &grpc.ServiceDesc{
 		ServiceName: s.ServiceName,
@@ -113,8 +114,15 @@ func (s *dispatchingRpcServerImpl) unaryHandler(methodName string, info *UnaryDi
 	}
 }
 
+
 func GetDefaultUnaryUnimplementedHandler(methodName string) func(context.Context, interface{}) (interface{}, error) {
 	return func(ctx context.Context, _ interface{}) (interface{}, error) {
 		return nil, status.Errorf(codes.Unimplemented, "method %s not implemented", methodName)
+	}
+}
+
+func GetDefaultStreamUnimplementedHandler(methodName string) func(interface{}, grpc.ServerStream) error {
+	return func(_ interface{}, stream grpc.ServerStream) error {
+		return status.Errorf(codes.Unimplemented, "streaming method %s not implemented", methodName)
 	}
 }
