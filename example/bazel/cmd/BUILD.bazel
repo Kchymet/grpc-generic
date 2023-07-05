@@ -3,11 +3,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "cmd_lib",
     srcs = ["server.go"],
-    importpath = "github.com/kchymet/grpc-generic/cmd",
+    importpath = "github.com/kchymet/grpc-generic/example/bazel/cmd",
     visibility = ["//visibility:private"],
     deps = [
-        "@com_github_kchymet_grpc_generic//example/api:go_default_library",
-        "@com_github_kchymet_grpc_generic//example/internal/action:go_default_library",
+        "//api",
+        "//internal/action",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//reflection",
     ],

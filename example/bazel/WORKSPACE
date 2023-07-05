@@ -86,6 +86,13 @@ go_repository(
     version = "v1.12.0",
 )
 
+go_repository(
+    name = "com_github_kchymet_grpc_generic",
+    importpath = "github.com/kchymet/grpc-generic",
+    sum = "h1:iPHk8grSCc0Sjdpy89m42WxrJ481BcsSxC/ihhu+v1E=",
+    version = "v0.0.0-20230705070330-f510b99163aa",
+)
+
 rules_proto_dependencies()
 
 rules_proto_toolchains()
