@@ -1,7 +1,7 @@
 load("@bazel_gazelle//:def.bzl", "DEFAULT_LANGUAGES", "gazelle", "gazelle_binary")
 
 # gazelle:go_grpc_compilers //:gen-go-grpc, @io_bazel_rules_go//proto:go_proto, //:protoc-gen-go-generic
-# gazelle:prefix github.com/kchymet/generic-grpc
+# gazelle:prefix github.com/kchymet/grpc-generic
 gazelle(
     name = "gazelle",
 )
@@ -28,7 +28,7 @@ go_proto_compiler(
 
 go_proto_compiler(
     name = "protoc-gen-go-generic",
-    plugin = "//cmd/protoc-gen-go-generic-grpc",
+    plugin = "//cmd/protoc-gen-go-grpc-generic",
     suffix = "_generic_grpc.pb.go",
     valid_archive = False,
     visibility = ["//visibility:public"],

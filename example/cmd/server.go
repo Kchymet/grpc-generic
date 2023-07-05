@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/kchymet/generic-grpc/example/api"
-	"github.com/kchymet/generic-grpc/example/internal/action"
+	"github.com/kchymet/grpc-generic/example/api"
+	"github.com/kchymet/grpc-generic/example/internal/action"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"

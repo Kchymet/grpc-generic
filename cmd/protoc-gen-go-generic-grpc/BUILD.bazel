@@ -1,15 +1,15 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "protoc-gen-go-generic-grpc_lib",
+    name = "protoc-gen-go-grpc-generic_lib",
     srcs = [
         "common.go",
         "file.go",
-        "protoc-generic-grpc.go",
+        "protoc-grpc-generic.go",
         "service.go",
         "service_builder.go",
     ],
-    importpath = "github.com/kchymet/generic-grpc/cmd/protoc-gen-go-generic-grpc",
+    importpath = "github.com/kchymet/grpc-generic/cmd/protoc-gen-go-grpc-generic",
     visibility = ["//visibility:private"],
     deps = [
         "@org_golang_google_protobuf//compiler/protogen:go_default_library",
@@ -18,7 +18,7 @@ go_library(
 )
 
 go_binary(
-    name = "protoc-gen-go-generic-grpc",
-    embed = [":protoc-gen-go-generic-grpc_lib"],
+    name = "protoc-gen-go-grpc-generic",
+    embed = [":protoc-gen-go-grpc-generic_lib"],
     visibility = ["//visibility:public"],
 )

@@ -3,7 +3,7 @@ package action
 import (
 	"context"
 	"fmt"
-	"github.com/kchymet/generic-grpc/example/api"
+	"github.com/kchymet/grpc-generic/example/api"
 )
 
 func NewSayHelloAction() api.HelloWorldServiceSayHelloAction {

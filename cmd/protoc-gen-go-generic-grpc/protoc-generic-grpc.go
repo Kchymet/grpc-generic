@@ -12,7 +12,7 @@ const (
 	grpcPackage    = protogen.GoImportPath("google.golang.org/grpc")
 	codesPackage   = protogen.GoImportPath("google.golang.org/grpc/codes")
 	statusPackage  = protogen.GoImportPath("google.golang.org/grpc/status")
-	dispatchingServerPackage = protogen.GoImportPath("github.com/kchymet/generic-grpc/pkg")
+	dispatchingServerPackage = protogen.GoImportPath("github.com/kchymet/grpc-generic/pkg")
 )
 
 const version = "0.0.1"
@@ -27,7 +27,7 @@ func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *showVersion {
-		fmt.Printf("protoc-gen-go-generic-grpc %v\n", version)
+		fmt.Printf("protoc-gen-go-grpc-generic %v\n", version)
 		return
 	}
 

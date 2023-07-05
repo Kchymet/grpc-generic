@@ -2,7 +2,7 @@ package action
 
 import (
 	"fmt"
-	"github.com/kchymet/generic-grpc/example/api"
+	"github.com/kchymet/grpc-generic/example/api"
 	"io"
 )
 
