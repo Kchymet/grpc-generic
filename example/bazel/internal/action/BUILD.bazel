@@ -7,7 +7,7 @@ go_library(
         "say_many_hello_action.go",
         "stream_hello.go",
     ],
-    importpath = "github.com/kchymet/grpc-generic/example/internal/action",
-    visibility = ["//example:__subpackages__"],
-    deps = ["//example/api"],
+    importpath = "github.com/kchymet/grpc-generic/internal/action",
+    visibility = ["//example/bazel:__subpackages__"],
+    deps = ["@com_github_kchymet_grpc_generic//example/bazel/api:go_default_library"],
 )
