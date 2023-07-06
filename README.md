@@ -35,32 +35,12 @@ server.Run()
 
 ```
 
-## Overriding Service Name
-If you want to run multiple instances of the same service, you can override the service name when binding:
-```go
-server := grpc.NewServer()
-
-// Accessible via HelloWorldService.SayHello
-service1 := NewHelloWorldServiceBuilder().
-	BindSayHello(/* some struct implementing HelloWorld_SayHello_Action */).
-	Build().
-    Register(server)
-
-// Accessible via HelloWorldService2.SayHello
-service2 := NewHelloWorldServiceBuilder().
-    BindSayHello(/* some struct implementing HelloWorld_SayHello_Action */).
-	WithServiceName("HelloWorldService2")
-    Build().
-    Register(server)
-
-// other server initialization
-server.Run()
-```
-
 ## Running the example
 
 ```bash
-bazel run //example/cmd
+# example 1: bazel
+cd example/bazel
+bazel run //cmd
 ```
 
 ```bash
