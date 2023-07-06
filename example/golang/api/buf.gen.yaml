@@ -1,0 +1,18 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/kchymet/grpc-generic/example/golang/api
+    except:
+      - buf.build/googleapis/googleapis
+plugins:
+  - plugin: go
+    out: ./
+    opt: paths=source_relative
+  - plugin: buf.build/grpc/go
+    out: ./
+    opt: paths=source_relative
+  - plugin: protoc-gen-go-grpc-generic
+    path: ["go", "run", "github.com/kchymet/grpc-generic/cmd/protoc-gen-go-grpc-generic"]
+    out: ./
+    opt: paths=source_relative

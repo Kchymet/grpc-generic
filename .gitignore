@@ -47,3 +47,6 @@ go.work
 .bazelversion
 # User-specific .bazelrc
 user.bazelrc
+
+# generated proto files
+**/*.pb.go
