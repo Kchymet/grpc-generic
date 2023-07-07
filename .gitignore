@@ -51,5 +51,5 @@ user.bazelrc
 # generated proto files
 **/*.pb.go
 
-# Ignore generated mocks
-**/mocks/
+# Ignore generated mocks (commenting for now since this causes import issues)
+# **/mocks/
