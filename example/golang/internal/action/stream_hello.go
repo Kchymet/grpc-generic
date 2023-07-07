@@ -18,6 +18,7 @@ func (s *streamHelloAction) StreamHello(server api.HelloWorldService_StreamHello
 		request, err := server.Recv()
 		if err == io.EOF {
 			fmt.Printf("closing stream")
+			return nil
 		} else if err != nil {
 			fmt.Printf("failed to receive, err: %v", err)
 			return err
