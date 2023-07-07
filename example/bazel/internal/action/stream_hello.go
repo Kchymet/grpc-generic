@@ -11,16 +11,15 @@ func NewStreamHello() api.HelloWorldServiceStreamHelloAction {
 }
 
 type streamHelloAction struct {
-
 }
 
 func (s *streamHelloAction) StreamHello(server api.HelloWorldService_StreamHelloServer) error {
 	for {
 		request, err := server.Recv()
 		if err == io.EOF {
-			fmt.Println("closing stream")
+			fmt.Printf("closing stream")
 		} else if err != nil {
-			fmt.Println("failed to receive, err: %v", err)
+			fmt.Printf("failed to receive, err: %v", err)
 			return err
 		}
 		name := request.GetName()
@@ -29,7 +28,7 @@ func (s *streamHelloAction) StreamHello(server api.HelloWorldService_StreamHello
 			Message: message,
 		})
 		if err != nil {
-			fmt.Println("failed to send, err: %v", err)
+			fmt.Printf("failed to send, err: %v", err)
 			return err
 		}
 	}

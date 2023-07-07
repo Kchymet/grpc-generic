@@ -50,3 +50,6 @@ user.bazelrc
 
 # generated proto files
 **/*.pb.go
+
+# Ignore generated mocks
+**/mocks/

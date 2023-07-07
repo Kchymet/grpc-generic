@@ -21,7 +21,7 @@ type DispatchingRpcServer interface {
 type UnaryDispatchInfo struct {
 	// DecodeFunc takes the decoding function from the grpc core library, runs it, and returns either the initialized interface or an error.
 	DecodeFunc func(func(interface{}) error) (interface{}, error)
-	Handler grpc.UnaryHandler
+	Handler    grpc.UnaryHandler
 }
 
 // This is an unexported interface for ensuring safe binding without allowing custom implementations.
@@ -31,7 +31,7 @@ type dispatchingRpcServer interface {
 
 type dispatchingRpcServerImpl struct {
 	ServiceName string
-	Metadata string
+	Metadata    string
 
 	MethodDispatchInfo map[string]*UnaryDispatchInfo
 	StreamDescriptions map[string]*grpc.StreamDesc
@@ -113,7 +113,6 @@ func (s *dispatchingRpcServerImpl) unaryHandler(methodName string, info *UnaryDi
 		return interceptor(ctx, in, grpcInfo, info.Handler)
 	}
 }
-
 
 func GetDefaultUnaryUnimplementedHandler(methodName string) func(context.Context, interface{}) (interface{}, error) {
 	return func(ctx context.Context, _ interface{}) (interface{}, error) {
