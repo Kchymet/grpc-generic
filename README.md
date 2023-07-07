@@ -35,7 +35,7 @@ server.Run()
 
 ```
 
-## Running the exampleexampleexampleexampleexampleexampleexampleexampleexample
+## Running the example
 
 ```bash
 # example 1: bazel
