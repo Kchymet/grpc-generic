@@ -18,7 +18,8 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	for _, method := range service.Methods {
 		genServiceBindingMethodSignature(gen, file, g, service, method, interfaceName)
 	}
-	genWithServiceNameSignature(gen, file, g, service, interfaceName)
+	// TODO service name overriding doesn't work with reflection service.
+	// genWithServiceNameSignature(gen, file, g, service, interfaceName)
 	genBuildMethodSignature(gen, file, g, service)
 	g.P("}")
 
@@ -33,7 +34,7 @@ func genServiceBuilder(gen *protogen.Plugin, file *protogen.File, g *protogen.Ge
 	for _, method := range service.Methods {
 		genServiceBindingMethod(gen, file, g, service, method, builderName, interfaceName)
 	}
-	genWithServiceName(gen, file, g, service, builderName, interfaceName)
+	//genWithServiceName(gen, file, g, service, builderName, interfaceName)
 	genBuildMethod(gen, file, g, service, builderName)
 
 	genServiceBuilderConstructor(service, g, interfaceName, builderName, file, service.Methods)
